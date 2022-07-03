@@ -10,5 +10,5 @@ urlpatterns = [
     # path('mypost/<int:pk>/', views.PostDetailAPIView.as_view()),
     # path('public/', views.public_post_list),
     path('', include(router.urls)),
-    path('public/', views.public_post_list),
+    # path('public/', views.public_post_list),
 ]
