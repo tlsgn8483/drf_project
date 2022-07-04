@@ -1,6 +1,10 @@
 # drf_project
 
 #예시
+python manage.py makemigration
+python manage.py migrate
+를 통한 데이터베이스 생성 및 반영
+
 $ python manage.py createsuperuser 을 통해 관리자 계정 생성 
 리뷰 작성 시 httpie 라이브러리를 통해 명령어 커맨드라인으로 추가 및 업데이트 
 # http --auth admin:@@@@@@@ POST http://localhost:8000/post/ content="첫번째 테스트 "
