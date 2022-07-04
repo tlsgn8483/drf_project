@@ -1,4 +1,5 @@
 import genetics as genetics
+from django.db.models import Sum
 from django.shortcuts import render
 
 from rest_framework import generics
@@ -66,12 +67,20 @@ class PostViewSet(ModelViewSet):
         serializer = self.get_serializer(qs, many=True)
         return Response(serializer.data)
 
+    #남긴 리뷰 조회
     @action(detail=False, methods=['GET'])
     def user_select(self, request):
         qs = self.get_queryset().filter(author=request.user)
         serializer = self.get_serializer(qs, many=True)
         return Response(serializer.data)
 
+    #현재 포인트 확인
+    @action(detail=False, methods=['GET'])
+    def user_select_point(self, request):
+        total_price = self.get_queryset().filter(author=request.user).aggregate(Sum('point'))
+        return Response(total_price)
+
+    #사용자만 업데이트 가능
     @action(detail=True, methods=['PATCH'])
     def set_public(self, request, pk):
         instance = self.get_object()
