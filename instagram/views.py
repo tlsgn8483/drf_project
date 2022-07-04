@@ -3,9 +3,15 @@ from django.shortcuts import render
 
 from rest_framework import generics
 from rest_framework.decorators import api_view, action
+from rest_framework.filters import SearchFilter, OrderingFilter
+from rest_framework.generics import RetrieveAPIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
+
+from .permissions import IsAuthorOrReadonly
 from .serializers import PostSerializer
 from .models import Post
 # Create your views here.
@@ -31,6 +37,28 @@ from .models import Post
 class PostViewSet(ModelViewSet):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
+    # 유저 인증 됨을 보장받을 수 있음
+    permission_classes = [IsAuthenticated, IsAuthorOrReadonly]
+
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ['content']
+
+    def perform_create(self, serializer):
+        # 인증이 되어있다는 가정하에 Author 정의
+        author = self.request.user # User or AnonymousUser
+        ip = self.request.META['REMOTE_ADDR']
+        point = 0
+        if self.request.data['content'] != "":
+            point += 1
+        if self.request.data['location'] != "":
+            point += 1
+        if self.request.data['attachedPhotoIds'] is not None:
+            point += 1
+
+        serializer.save(author=author, ip=ip, point=point)
+
+    def perform_destroy(self, instance):
+        instance.delete()
 
     @action(detail=False, methods=['GET'])
     def public(self, request):
@@ -38,15 +66,35 @@ class PostViewSet(ModelViewSet):
         serializer = self.get_serializer(qs, many=True)
         return Response(serializer.data)
 
+    @action(detail=False, methods=['GET'])
+    def user_select(self, request):
+        qs = self.get_queryset().filter(author=request.user)
+        serializer = self.get_serializer(qs, many=True)
+        return Response(serializer.data)
+
     @action(detail=True, methods=['PATCH'])
     def set_public(self, request, pk):
         instance = self.get_object()
         instance.is_public = True
+        if self.request.user == instance.author:
+            print("동일한 사용자가 아닙니다.")
         instance.save(update_fields=['is_public'])
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
-    # def dispatch(self, request, *args, **kwargs):
-    #     print("request.body :", request.body)
-    #     print("request.POST :", request.POST)
-    #     return super().dispatch(request, *args, **kwargs)
+
+
+class PostDetailAPIView(RetrieveAPIView):
+    queryset = Post.objects.all()
+    # HTML이 없을 경우, Serializer로 넘긴다.
+    renderer_classes = [TemplateHTMLRenderer]
+    template_name = 'instagram/post_detail.html'
+
+    def get(self, request, *args, **kwargs):
+        post = self.get_object()
+
+        return Response({
+        'post' : PostSerializer(post).data,
+        })
+
+

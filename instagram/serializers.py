@@ -7,6 +7,7 @@ class AuthorSerializer(serializers.ModelSerializer):
     class Meta:
         model = get_user_model()
         fields = ['username', 'email']
+
 class PostSerializer(ModelSerializer):
     author_username = serializers.ReadOnlyField(source='author.username')
     # author = AuthorSerializer()
@@ -14,9 +15,14 @@ class PostSerializer(ModelSerializer):
         model = Post
         fields = [
             'pk',
+            'type',
             'author_username',
-            'message',
+            'content',
             'created_at',
             'updated_at',
             'is_public',
+            'ip',
+            'location',
+            'attachedPhotoIds',
+            'point',
         ]
